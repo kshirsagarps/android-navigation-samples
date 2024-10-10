@@ -24,4 +24,13 @@
     <include layout="@layout/controls_map" />
 
     <include layout="@layout/controls_view" />
+
+    <ToggleButton
+        android:id="@+id/start_event_track_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="205dp"
+        android:layout_alignParentEnd="true"
+        android:textOff="Tap to record"
+        android:textOn="Tap to collect"/>
 </RelativeLayout>

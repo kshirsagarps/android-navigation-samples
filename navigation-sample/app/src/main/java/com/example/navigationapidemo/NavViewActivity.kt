@@ -26,6 +26,7 @@ import android.view.MenuItem
 import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
+import android.widget.ToggleButton
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.example.navigationapidemo.CustomizationPanelsDelegate.logDebugInfo
@@ -34,11 +35,11 @@ import com.google.android.libraries.navigation.NavigationApi.NavigatorListener
 import com.google.android.libraries.navigation.NavigationView
 import com.google.android.libraries.navigation.Navigator
 import com.google.android.libraries.navigation.Navigator.RouteStatus
+import com.google.android.libraries.navigation.RoadSnappedLocationProvider.LocationListener
 import com.google.android.libraries.navigation.SimulationOptions
 import com.google.android.libraries.navigation.Waypoint
 import com.google.android.libraries.navigation.Waypoint.UnsupportedPlaceIdException
 import com.google.android.libraries.places.api.model.Place
-import java.lang.Exception
 
 /**
  * This activity shows a simple Navigation API implementation using a Navigation view and using the
@@ -47,12 +48,13 @@ import java.lang.Exception
 private const val TAG = "NavViewActivity"
 private const val PLACE_PICKER_REQUEST = 1
 
-class NavViewActivity : AppCompatActivity() {
+class NavViewActivity : AppCompatActivity(), EventTrackBroadcastManager.OnEventTrackDumpListener {
   private lateinit var navView: NavigationView
   var navigatorScope: InitializedNavScope? = null
   var pendingNavActions = mutableListOf<InitializedNavRunnable>()
   private var arrivalListener: Navigator.ArrivalListener? = null
   private var routeChangedListener: Navigator.RouteChangedListener? = null
+  private lateinit var eventTrackBroadcastManager: EventTrackBroadcastManager
 
   // Only used to demo the turn-by-turn nav forwarding feature.
   var navInfoDisplayFragment: Fragment? = null
@@ -79,7 +81,18 @@ class NavViewActivity : AppCompatActivity() {
     registerNavigationListeners()
 
     initializeNavigationApi()
+
+    eventTrackBroadcastManager = EventTrackBroadcastManager(this, this)
+    findViewById<ToggleButton>(R.id.start_event_track_btn).setOnCheckedChangeListener { _, isChecked ->
+      if (isChecked) {
+        eventTrackBroadcastManager.startRecording()
+      } else {
+        // eventTrackBroadcastManager.stopRecording()
+        eventTrackBroadcastManager.collectDump()
+      }
+    }
   }
+
 
   /**
    * Runs [block] once map is initialized. Block is ignored if map is never initialized.
@@ -152,20 +165,17 @@ class NavViewActivity : AppCompatActivity() {
     )
 
     withMapAsync {
-        CustomizationPanelsDelegate.setUpCameraPerspectiveSpinner(
-          this@NavViewActivity,
-          map::followMyLocation,
-        )
-        // The logic below simply helps keep the UI in tune with the underlying SDK state.
-        CustomizationPanelsDelegate.registerOnCameraFollowLocationCallback(
-          this@NavViewActivity,
-          map,
-        )
+      CustomizationPanelsDelegate.setUpCameraPerspectiveSpinner(
+        this@NavViewActivity,
+        map::followMyLocation,
+      )
+      // The logic below simply helps keep the UI in tune with the underlying SDK state.
+      CustomizationPanelsDelegate.registerOnCameraFollowLocationCallback(this@NavViewActivity, map)
 
-        CustomizationPanelsDelegate.registerOnNavigationUiChangedListener(
-          this@NavViewActivity,
-          navView::addOnNavigationUiChangedListener,
-        )
+      CustomizationPanelsDelegate.registerOnNavigationUiChangedListener(
+        this@NavViewActivity,
+        navView::addOnNavigationUiChangedListener,
+      )
     }
   }
 
@@ -192,6 +202,15 @@ class NavViewActivity : AppCompatActivity() {
           showToast("onRouteChanged: the driver's route changed")
         }
       navigator.addRouteChangedListener(routeChangedListener)
+
+      val roadSnappedLocationProvider = NavigationApi.getRoadSnappedLocationProvider(application)
+      if (roadSnappedLocationProvider != null) {
+        val locationListener = LocationListener { }
+        roadSnappedLocationProvider.addLocationListener(locationListener)
+      } else {
+        throw IllegalStateException("roadSnappedLocationProvider cannot be null or event track won't work.")
+      }
+      eventTrackBroadcastManager.startReceiver()
     }
   }
 
@@ -300,6 +319,7 @@ class NavViewActivity : AppCompatActivity() {
       navigator.simulator?.unsetUserLocation()
       navigator.cleanup()
     }
+    eventTrackBroadcastManager.stopReceiver()
     super.onDestroy()
   }
 
@@ -395,5 +415,9 @@ class NavViewActivity : AppCompatActivity() {
 
   private fun showToast(errorMessage: String) {
     Toast.makeText(this@NavViewActivity, errorMessage, Toast.LENGTH_LONG).show()
+  }
+
+  override fun onEventTrackDump(filePath: String?) {
+    Log.i("EventTrackBroadcastManager","Demo app EventTrack path: $filePath")
   }
 }

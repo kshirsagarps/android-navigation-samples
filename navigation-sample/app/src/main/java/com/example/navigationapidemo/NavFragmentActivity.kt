@@ -144,21 +144,21 @@ class NavFragmentActivity : AppCompatActivity() {
     )
 
     withMapAsync {
-        CustomizationPanelsDelegate.setUpCameraPerspectiveSpinner(
-          this@NavFragmentActivity,
-          map::followMyLocation,
-        )
-        // The logic below simply helps keep the UI in tune with the underlying SDK
-        // state.
-        CustomizationPanelsDelegate.registerOnCameraFollowLocationCallback(
-          this@NavFragmentActivity,
-          map,
-        )
+      CustomizationPanelsDelegate.setUpCameraPerspectiveSpinner(
+        this@NavFragmentActivity,
+        map::followMyLocation,
+      )
+      // The logic below simply helps keep the UI in tune with the underlying SDK
+      // state.
+      CustomizationPanelsDelegate.registerOnCameraFollowLocationCallback(
+        this@NavFragmentActivity,
+        map,
+      )
 
-        CustomizationPanelsDelegate.registerOnNavigationUiChangedListener(
-          this@NavFragmentActivity,
-          navFragment::addOnNavigationUiChangedListener,
-        )
+      CustomizationPanelsDelegate.registerOnNavigationUiChangedListener(
+        this@NavFragmentActivity,
+        navFragment::addOnNavigationUiChangedListener,
+      )
     }
   }
 
